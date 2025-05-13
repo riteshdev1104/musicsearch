@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YouTube Music Search</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body.dark { background-color: #111827; color: #fff; }
+    .loader { border-top-color: #3498db; animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-100 dark text-gray-900 dark:text-white transition">
+  <div class="container mx-auto p-4">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-3xl font-bold">YouTube Music Search</h1>
+      <button id="toggleDark" class="px-4 py-2 rounded bg-gray-800 text-white">Toggle Mode</button>
+    </div>
+
+    <div class="flex gap-2 mb-4">
+      <input id="searchInput" type="text" placeholder="Search songs..." class="w-full p-3 rounded border dark:bg-gray-900 border-gray-300 focus:outline-none">
+      <button onclick="manualSearch()" class="bg-blue-600 text-white px-4 rounded hover:bg-blue-700">Search</button>
+    </div>
+
+    <div id="loader" class="w-12 h-12 border-4 border-gray-300 rounded-full mx-auto my-6 hidden loader"></div>
+    <div id="results" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    <div id="noResults" class="text-center text-gray-500 mt-6 hidden">No results found.</div>
+  </div>
+
+  <script>
+    const toggleBtn = document.getElementById('toggleDark');
+    const searchInput = document.getElementById('searchInput');
+    const results = document.getElementById('results');
+    const loader = document.getElementById('loader');
+    const noResults = document.getElementById('noResults');
+
+    toggleBtn.onclick = () => {
+      document.body.classList.toggle('dark');
+    };
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') manualSearch();
+    });
+
+    function manualSearch() {
+      const query = searchInput.value.trim();
+      if (!query) return;
+      searchMusic(query);
+    }
+
+    async function searchMusic(query) {
+      loader.classList.remove('hidden');
+      results.innerHTML = '';
+      noResults.classList.add('hidden');
+
+      try {
+        const res = await fetch(`https://yt-music-search-byknonx.onrender.com/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+
+        loader.classList.add('hidden');
+
+        if (!data.length) {
+          noResults.classList.remove('hidden');
+          return;
+        }
+
+        results.innerHTML = data.map(song => `
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+            <img src="${song.thumbnail}" alt="${song.title}" class="rounded w-full mb-3">
+            <h2 class="font-bold text-lg mb-1">${song.title}</h2>
+            <p class="text-sm"><strong>Artist:</strong> ${song.artist}</p>
+            <p class="text-sm"><strong>Album:</strong> ${song.album || 'N/A'}</p>
+            <p class="text-sm mb-3"><strong>Duration:</strong> ${song.duration}</p>
+            <div class="flex justify-between items-center">
+              <a href="https://music.youtube.com/watch?v=${song.videoId}" target="_blank" class="text-blue-500 hover:underline">Play</a>
+              <button onclick="copyID('${song.videoId}')" class="text-sm text-green-600 hover:underline">Copy ID</button>
+              <a href="${song.thumbnail}" download class="text-sm text-pink-600 hover:underline">Download Image</a>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        loader.classList.add('hidden');
+        alert('Something went wrong!');
+      }
+    }
+
+    function copyID(id) {
+      navigator.clipboard.writeText(id).then(() => {
+        alert("Video ID copied!");
+      });
+    }
+  </script>
+</body>
+</html>
